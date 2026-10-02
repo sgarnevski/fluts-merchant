@@ -6,8 +6,8 @@ import java.util.List;
  * Outcome of optimizing one scenario.
  *
  * @param maxProfit  the maximum profit in florins
- * @param flutCounts every number of fluts that reaches {@code maxProfit}, ascending, at most the
- *                   {@value FlutTradingOptimizer#MAX_REPORTED_COUNTS} smallest
+ * @param flutCounts every number of fluts that reaches {@code maxProfit}, ascending; only the smallest
+ *                   are kept (how many: {@link TradingRules#maxReportedCounts()})
  */
 public record TradingResult(long maxProfit, List<Integer> flutCounts) {
 

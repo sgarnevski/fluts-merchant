@@ -31,6 +31,17 @@ class FlutCliProcessTest {
     }
 
     @Test
+    void sellingPriceCanBeConfiguredOnTheCommandLine() throws Exception {
+        final Path input = Files.createTempFile("flut-dear", ".txt");
+        Files.writeString(input, "1\n1 12\n0\n");
+
+        final ProcessResult result = runMain(input, "--flut.trading.selling-price=15");
+
+        assertThat(result.stdout()).isEqualTo("schuurs 1\nMaximum profit is 3.\nNumber of fluts to buy: 1\n");
+        assertThat(result.exitCode()).isZero();
+    }
+
+    @Test
     void invalidInputExitsWithOne() throws Exception {
         final Path input = Files.createTempFile("flut-invalid", ".txt");
         Files.writeString(input, "1\n2 5\n");

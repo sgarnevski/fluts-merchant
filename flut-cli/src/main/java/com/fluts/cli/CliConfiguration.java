@@ -3,15 +3,16 @@ package com.fluts.cli;
 import com.fluts.domain.FlutTradingOptimizer;
 import com.fluts.io.TextResultFormatter;
 import com.fluts.io.TextScenarioParser;
+import com.fluts.trading.TradingService;
 import java.nio.charset.StandardCharsets;
 import java.io.PrintStream;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/** Wires the plain-Java parser, optimizer and formatter, and the process streams. */
+/** Wires the plain-Java parser, trading service and formatter, and the process streams. */
 @Configuration(proxyBeanMethods = false)
-@EnableConfigurationProperties(LimitsProperties.class)
+@EnableConfigurationProperties({LimitsProperties.class, TradingProperties.class})
 class CliConfiguration {
 
     @Bean
@@ -27,8 +28,8 @@ class CliConfiguration {
     }
 
     @Bean
-    FlutTradingOptimizer flutTradingOptimizer() {
-        return new FlutTradingOptimizer();
+    TradingService tradingService(final TradingProperties trading) {
+        return new TradingService(new FlutTradingOptimizer(trading.toTradingRules()));
     }
 
     @Bean

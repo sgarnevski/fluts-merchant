@@ -1,43 +1,43 @@
 package com.fluts.rest.evaluation;
 
-import com.fluts.domain.FlutTradingOptimizer;
 import com.fluts.domain.Scenario;
-import com.fluts.domain.TradingResult;
 import com.fluts.io.InputType;
 import com.fluts.io.JsonScenarioParser;
 import com.fluts.io.ScenarioParseException;
 import com.fluts.io.ScenarioParser;
 import com.fluts.io.TextScenarioParser;
+import com.fluts.trading.Evaluation;
+import com.fluts.trading.TradingService;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.IntStream;
 import org.jspecify.annotations.Nullable;
 
-/** Parses input, hands the scenarios to the {@link ScenarioRecorder} and solves them. */
+/** Evaluates a request through the {@link TradingService} and hands the scenarios to the {@link ScenarioRecorder}. */
 public class EvaluationService {
 
     private final TextScenarioParser textParser;
     private final JsonScenarioParser jsonParser;
-    private final FlutTradingOptimizer optimizer;
+    private final TradingService tradingService;
     private final ScenarioRecorder recorder;
 
     public EvaluationService(final TextScenarioParser textParser, final JsonScenarioParser jsonParser,
-            final FlutTradingOptimizer optimizer, final ScenarioRecorder recorder) {
+            final TradingService tradingService, final ScenarioRecorder recorder) {
         this.textParser = textParser;
         this.jsonParser = jsonParser;
-        this.optimizer = optimizer;
+        this.tradingService = tradingService;
         this.recorder = recorder;
     }
 
     /** Evaluates a JSON request body in the normalized format. */
     public EvaluationResponse evaluateJson(final InputStream body) {
-        return evaluate(jsonParser.parse(body), InputType.JSON);
+        return respond(tradingService.evaluate(jsonParser, body), InputType.JSON);
     }
 
     /** Evaluates an uploaded file: {@code .json} (normalized format) or {@code .txt} (original format). */
     public EvaluationResponse evaluateFile(final String fileName, final InputStream content) {
-        return evaluate(parserFor(fileName).parse(content), InputType.FILE);
+        return respond(tradingService.evaluate(parserFor(fileName), content), InputType.FILE);
     }
 
     private ScenarioParser parserFor(final String fileName) {
@@ -51,16 +51,16 @@ public class EvaluationService {
         throw ScenarioParseException.of("Unsupported file '" + fileName + "': upload a .txt or .json file");
     }
 
-    private EvaluationResponse evaluate(final List<Scenario> scenarios, final InputType inputType) {
+    private EvaluationResponse respond(final List<Evaluation> evaluations, final InputType inputType) {
+        final List<Scenario> scenarios = evaluations.stream().map(Evaluation::scenario).toList();
         final List<Long> ids = recorder.record(scenarios, inputType);
-        final List<EvaluationResult> results = IntStream.range(0, scenarios.size())
-                .mapToObj(index -> toResult(scenarios.get(index), ids.isEmpty() ? null : ids.get(index)))
-                .toList();
-        return new EvaluationResponse(results);
+        return new EvaluationResponse(IntStream.range(0, evaluations.size())
+                .mapToObj(index -> toResult(evaluations.get(index), ids.isEmpty() ? null : ids.get(index)))
+                .toList());
     }
 
-    private EvaluationResult toResult(final Scenario scenario, final @Nullable Long id) {
-        final TradingResult result = optimizer.optimize(scenario);
-        return new EvaluationResult(id, scenario.name(), result.maxProfit(), result.flutCounts());
+    private static EvaluationResult toResult(final Evaluation evaluation, final @Nullable Long id) {
+        return new EvaluationResult(id, evaluation.scenario().name(), evaluation.result().maxProfit(),
+                evaluation.result().flutCounts());
     }
 }

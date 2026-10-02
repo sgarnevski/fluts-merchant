@@ -4,12 +4,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fluts.domain.FlutTradingOptimizer;
+import com.fluts.domain.TradingRules;
 import com.fluts.domain.Scenario;
 import com.fluts.io.InputLimits;
 import com.fluts.io.InputType;
 import com.fluts.io.JsonScenarioParser;
 import com.fluts.io.ScenarioParseException;
 import com.fluts.io.TextScenarioParser;
+import com.fluts.trading.TradingService;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -72,7 +74,7 @@ class EvaluationServiceTest {
 
     private static EvaluationService service(final ScenarioRecorder recorder) {
         return new EvaluationService(new TextScenarioParser(InputLimits.DEFAULT),
-                new JsonScenarioParser(InputLimits.DEFAULT), new FlutTradingOptimizer(), recorder);
+                new JsonScenarioParser(InputLimits.DEFAULT), new TradingService(new FlutTradingOptimizer(TradingRules.SPECIFICATION)), recorder);
     }
 
     private static InputStream stream(final String content) {

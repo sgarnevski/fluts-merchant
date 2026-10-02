@@ -1,10 +1,11 @@
 package com.fluts.cli;
 
-import com.fluts.domain.FlutTradingOptimizer;
 import com.fluts.domain.TradingResult;
 import com.fluts.io.ScenarioParseException;
 import com.fluts.io.TextResultFormatter;
 import com.fluts.io.TextScenarioParser;
+import com.fluts.trading.Evaluation;
+import com.fluts.trading.TradingService;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -30,15 +31,15 @@ public class FlutCliRunner implements ApplicationRunner, ExitCodeGenerator {
 
     private final ConsoleStreams console;
     private final TextScenarioParser parser;
-    private final FlutTradingOptimizer optimizer;
+    private final TradingService tradingService;
     private final TextResultFormatter formatter;
     private final AtomicInteger exitCode = new AtomicInteger(OK);
 
     public FlutCliRunner(final ConsoleStreams console, final TextScenarioParser parser,
-            final FlutTradingOptimizer optimizer, final TextResultFormatter formatter) {
+            final TradingService tradingService, final TextResultFormatter formatter) {
         this.console = console;
         this.parser = parser;
-        this.optimizer = optimizer;
+        this.tradingService = tradingService;
         this.formatter = formatter;
     }
 
@@ -75,7 +76,7 @@ public class FlutCliRunner implements ApplicationRunner, ExitCodeGenerator {
     }
 
     private List<TradingResult> solve(final InputStream input) {
-        return parser.parse(input).stream().map(optimizer::optimize).toList();
+        return tradingService.evaluate(parser, input).stream().map(Evaluation::result).toList();
     }
 
     private void fail(final int code, final String message) {

@@ -98,6 +98,11 @@ to "Scenario N":
 
 Limits (configurable, `flut.limits.*`): 1,000 schuurs per scenario, 10,000 boxes per schuur.
 
+The rules of the trade are configuration too (`flut.trading.*`), with the specification's values as
+defaults: a flut sells for `selling-price=10` florins, and the `max-reported-counts=10` smallest
+numbers of fluts are reported. For example
+`java -jar flut-cli/target/flut-cli.jar --flut.trading.selling-price=15 < demo/input.txt`.
+
 ## How it works
 
 For one pile, buying the top `k` boxes earns `Σ (10 − price)` over those boxes, so the code walks
@@ -106,7 +111,8 @@ the pile once with a running profit and remembers the best value and every `k` t
 piles' maxima, and the optimal flut counts are all sums of one optimal `k` per pile. Only the 10
 smallest are reported, and keeping just the 10 smallest partial sums after each pile is enough to
 find them (at most 10 × 10 sums per pile). Profits are `long`, so huge prices cannot overflow;
-the whole thing is linear in the number of boxes. See `FlutTradingOptimizer`, 60 lines of plain loops.
+the whole thing is linear in the number of boxes. See `FlutTradingOptimizer`, 60 lines of plain loops;
+the selling price and the number of reported counts come in as `TradingRules`.
 
 Example 2: pile A reaches its maximum 10 at `k ∈ {2, 4, 5}`, pile B its maximum 30 at
 `k ∈ {4, 5, 8}` → maximum profit 40, flut counts `{2,4,5} + {4,5,8}` = 6 7 8 9 10 12 13.
@@ -114,8 +120,8 @@ Example 2: pile A reaches its maximum 10 at `k ∈ {2, 4, 5}`, pile B its maximu
 ## Project structure
 
 ```
-flut-core     domain records + FlutTradingOptimizer — the algorithm only, no dependencies
-flut-common   text / JSON parsers and the text formatter — shared logic, no Spring
+flut-core     domain records, TradingRules + FlutTradingOptimizer — the algorithm only, no dependencies
+flut-common   text / JSON parsers, the text formatter and TradingService (parse → optimize) — shared logic, no Spring
 flut-cli      Spring Boot console app (no web)
 flut-rest     Spring Boot REST app: POST /api/evaluations, problem details, Swagger UI
 demo/         files to try things with
@@ -123,6 +129,8 @@ demo/         files to try things with
 
 Dependencies point inward: `flut-rest → flut-common → flut-core` and `flut-cli → flut-common → flut-core`.
 The domain and the parsers are plain Java and unit-tested on their own; Spring only wires them.
+Both apps evaluate through the same `TradingService` (parse the input, optimize every scenario), so
+the console app and the REST API cannot drift apart; the optimizer stays the pure algorithm.
 
 Design choices worth knowing:
 

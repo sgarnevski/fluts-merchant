@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
 
 class FlutTradingOptimizerTest {
 
-    private final FlutTradingOptimizer optimizer = new FlutTradingOptimizer();
+    private final FlutTradingOptimizer optimizer = new FlutTradingOptimizer(TradingRules.SPECIFICATION);
 
     @Nested
     class SpecificationExamples {
@@ -74,7 +74,7 @@ class FlutTradingOptimizerTest {
 
         @Test
         void tellsTheBestBuyOfOnePileOnItsOwn() {
-            assertThat(FlutTradingOptimizer.optimizeSchuur(pile(7, 3, 11, 9, 10)))
+            assertThat(optimizer.optimizeSchuur(pile(7, 3, 11, 9, 10)))
                     .isEqualTo(new SchuurResult(10, List.of(2, 4, 5)));
         }
     }
@@ -120,6 +120,31 @@ class FlutTradingOptimizerTest {
     }
 
     @Nested
+    class OtherRules {
+
+        @Test
+        void buysBoxesAboveTenFlorinsWhenAFlutSellsForMore() {
+            final FlutTradingOptimizer dearMarket = new FlutTradingOptimizer(new TradingRules(15, 10));
+
+            assertThat(dearMarket.optimize(scenario(pile(12, 14, 20)))).isEqualTo(result(4, 2));
+        }
+
+        @Test
+        void buysNothingWhenAFlutSellsForLessThanEveryBox() {
+            final FlutTradingOptimizer cheapMarket = new FlutTradingOptimizer(new TradingRules(2, 10));
+
+            assertThat(cheapMarket.optimize(scenario(pile(3, 4, 5)))).isEqualTo(result(0, 0));
+        }
+
+        @Test
+        void reportsOnlyAsManyNumbersOfFlutsAsTheRulesAllow() {
+            final FlutTradingOptimizer topThree = new FlutTradingOptimizer(new TradingRules(10, 3));
+
+            assertThat(topThree.optimize(scenario(pile(10, 10, 10, 10), pile(10))).flutCounts()).containsExactly(0, 1, 2);
+        }
+    }
+
+    @Nested
     class LargeInput {
 
         @Test
@@ -147,7 +172,7 @@ class FlutTradingOptimizerTest {
 
         @Test
         void rejectsAMissingSchuur() {
-            assertThatThrownBy(() -> FlutTradingOptimizer.optimizeSchuur(null)).isInstanceOf(NullPointerException.class);
+            assertThatThrownBy(() -> optimizer.optimizeSchuur(null)).isInstanceOf(NullPointerException.class);
         }
     }
 
@@ -177,14 +202,14 @@ class FlutTradingOptimizerTest {
                 final int[] digits = digits(combination, sizes);
                 for (final int index : IntStream.range(0, piles.size()).toArray()) {
                     final List<Integer> prices = piles.get(index).boxPrices().subList(0, digits[index]);
-                    profits[combination] += prices.stream().mapToLong(price -> 10L - price).sum();
+                    profits[combination] += prices.stream().mapToLong(price -> (long) TradingRules.SPECIFICATION.sellingPrice() - price).sum();
                     counts[combination] += digits[index];
                 }
             }
             final long best = Arrays.stream(profits).max().orElseThrow();
             final SortedSet<Integer> optimal = new TreeSet<>();
             IntStream.range(0, combinations).filter(c -> profits[c] == best).forEach(c -> optimal.add(counts[c]));
-            return new TradingResult(best, optimal.stream().limit(FlutTradingOptimizer.MAX_REPORTED_COUNTS).toList());
+            return new TradingResult(best, optimal.stream().limit(TradingRules.SPECIFICATION.maxReportedCounts()).toList());
         }
 
         /** The mixed-radix digits of {@code number}: one "k" per pile. */
@@ -200,7 +225,11 @@ class FlutTradingOptimizerTest {
     }
 
     private TradingResult optimize(final Schuur... piles) {
-        return optimizer.optimize(new Scenario("test", List.of(piles)));
+        return optimizer.optimize(scenario(piles));
+    }
+
+    private static Scenario scenario(final Schuur... piles) {
+        return new Scenario("test", List.of(piles));
     }
 
     private static TradingResult result(final long maxProfit, final Integer... flutCounts) {

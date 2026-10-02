@@ -4,9 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import com.fluts.domain.FlutTradingOptimizer;
+import com.fluts.domain.TradingRules;
 import com.fluts.io.InputLimits;
 import com.fluts.io.TextResultFormatter;
 import com.fluts.io.TextScenarioParser;
+import com.fluts.trading.TradingService;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -109,7 +111,7 @@ class FlutCliRunnerTest {
     }
 
     private static FlutCliRunner runner(final ConsoleStreams console) {
-        return new FlutCliRunner(console, new TextScenarioParser(InputLimits.DEFAULT), new FlutTradingOptimizer(),
+        return new FlutCliRunner(console, new TextScenarioParser(InputLimits.DEFAULT), new TradingService(new FlutTradingOptimizer(TradingRules.SPECIFICATION)),
                 new TextResultFormatter());
     }
 

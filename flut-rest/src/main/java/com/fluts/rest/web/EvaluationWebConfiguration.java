@@ -6,6 +6,7 @@ import com.fluts.io.TextResultFormatter;
 import com.fluts.io.TextScenarioParser;
 import com.fluts.rest.evaluation.EvaluationService;
 import com.fluts.rest.evaluation.ScenarioRecorder;
+import com.fluts.trading.TradingService;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.servers.Server;
@@ -23,7 +24,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  * An app imports this configuration and provides one {@link ScenarioRecorder} bean.
  */
 @Configuration(proxyBeanMethods = false)
-@EnableConfigurationProperties(LimitsProperties.class)
+@EnableConfigurationProperties({LimitsProperties.class, TradingProperties.class})
 @Import({EvaluationController.class, ApiExceptionHandler.class})
 public class EvaluationWebConfiguration implements WebMvcConfigurer {
 
@@ -39,16 +40,22 @@ public class EvaluationWebConfiguration implements WebMvcConfigurer {
         return new JsonScenarioParser(limits.toInputLimits());
     }
 
+    /** The algorithm with the configured rules; also usable on its own (e.g. per pile) by apps importing this. */
     @Bean
-    FlutTradingOptimizer flutTradingOptimizer() {
-        return new FlutTradingOptimizer();
+    FlutTradingOptimizer flutTradingOptimizer(final TradingProperties trading) {
+        return new FlutTradingOptimizer(trading.toTradingRules());
+    }
+
+    @Bean
+    TradingService tradingService(final FlutTradingOptimizer flutTradingOptimizer) {
+        return new TradingService(flutTradingOptimizer);
     }
 
     @Bean
     EvaluationService evaluationService(final TextScenarioParser textScenarioParser,
-            final JsonScenarioParser jsonScenarioParser, final FlutTradingOptimizer flutTradingOptimizer,
+            final JsonScenarioParser jsonScenarioParser, final TradingService tradingService,
             final ScenarioRecorder scenarioRecorder) {
-        return new EvaluationService(textScenarioParser, jsonScenarioParser, flutTradingOptimizer, scenarioRecorder);
+        return new EvaluationService(textScenarioParser, jsonScenarioParser, tradingService, scenarioRecorder);
     }
 
     @Bean
