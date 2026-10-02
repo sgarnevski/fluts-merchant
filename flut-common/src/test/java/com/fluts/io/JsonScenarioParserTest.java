@@ -23,7 +23,7 @@ class JsonScenarioParserTest {
     private final JsonScenarioParser parser = new JsonScenarioParser(InputLimits.DEFAULT);
 
     @Test
-    void parsesTheSampleFile() throws IOException {
+    void parsesTheDemoJsonFile() throws IOException {
         try (InputStream input = Files.newInputStream(Path.of("../demo/input.json"))) {
             assertThat(parser.parse(input)).containsExactly(
                     new Scenario("Example 1", List.of(schuur(12, 3, 10, 7, 16, 5))),
@@ -46,7 +46,7 @@ class JsonScenarioParserTest {
     }
 
     @Test
-    void mapsAnAlreadyBoundDocument() {
+    void validatesAnAlreadyBoundRequestBody() {
         final ScenariosInput document = new ScenariosInput(List.of(
                 new ScenarioInput(null, List.of(new SchuurInput(List.of(4, 11))))));
 
@@ -65,6 +65,8 @@ class JsonScenarioParserTest {
             {"scenarios": [{"schuurs": [{"boxPrices": [1]}, {"boxPrices": [0]}]}]} | Scenario 1, schuur 2: box price must be positive, got 0
             {"scenarios": [null]}                                               | Scenario 1 is empty
             {"scenarios": [{"schuurs": [null]}]}                                | Scenario 1, schuur 1 is empty
+            {"scenarios": [{"schuurs": [{"boxPrices": [-3]}]}]}                 | Scenario 1, schuur 1: box price must be positive, got -3
+            {"scenarios": [{"schuurs": [{"boxPrices": [1]}]}, {"schuurs": [{"boxPrices": [0]}]}]} | Scenario 2, schuur 1: box price must be positive, got 0
             """)
     void reportsInvalidContent(final String json, final String detail) {
         final ScenarioParseException error = catchThrowableOfType(ScenarioParseException.class, () -> parse(json));
@@ -81,6 +83,9 @@ class JsonScenarioParserTest {
             {"scenarios": [{"schuurs": [{"boxPrices": [2.5]}]}]} | 1
             [1, 2]                                             | 1
             {"scenarios": []} {"scenarios": []}                | 1
+            {"scenarios": [{"schuurs": [{"boxPrices": 5}]}]}   | 1
+            {"scenarios": [{"name": ["a"], "schuurs": []}]}    | 1
+            not json at all                                    | 1
             """)
     void reportsMalformedJsonWithLineNumber(final String json, final int line) {
         final ScenarioParseException error = catchThrowableOfType(ScenarioParseException.class, () -> parse(json));
@@ -127,7 +132,7 @@ class JsonScenarioParserTest {
     }
 
     @Test
-    void readFailuresAreNotParseErrors() {
+    void reportsAnUnreadableStreamAsAnIoProblemNotAsInvalidInput() {
         final InputStream broken = new InputStream() {
             @Override
             public int read() throws IOException {

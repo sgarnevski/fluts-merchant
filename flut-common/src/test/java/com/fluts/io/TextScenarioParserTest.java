@@ -60,8 +60,9 @@ class TextScenarioParserTest {
     }
 
     @Test
-    void emptyInputHasNoScenarios() {
+    void findsNoScenariosInEmptyInputOrALoneTerminator() {
         assertThat(parse("")).isEmpty();
+        assertThat(parse(" \n\t\n")).isEmpty();
         assertThat(parse("0\n")).isEmpty();
     }
 
@@ -81,6 +82,9 @@ class TextScenarioParserTest {
             1 2\\n1 5\\n                    | 1 | Expected only the number of schuurs, but the line has 2 values
             1\\n1 99999999999\\n            | 2 | '99999999999' is not a whole number
             1\\n1 5\\n1\\n1 5 6\\n          | 4 | Schuur declares 1 boxes but lists 2 prices
+            2\\n1 5\\n1\\n                 | 3 | Schuur declares 1 boxes but lists 0 prices
+            1\\n1 1.5\\n                 | 2 | '1.5' is not a whole number
+            1\\n2 5 5 x\\n               | 2 | Schuur declares 2 boxes but lists 3 prices
             """)
     void reportsInvalidInputWithLineNumber(final String input, final int line, final String detail) {
         final ScenarioParseException error = catchThrowableOfType(ScenarioParseException.class,
@@ -112,7 +116,7 @@ class TextScenarioParserTest {
     }
 
     @Test
-    void readFailuresAreNotParseErrors() {
+    void reportsAnUnreadableStreamAsAnIoProblemNotAsInvalidInput() {
         final InputStream broken = new InputStream() {
             @Override
             public int read() throws IOException {

@@ -133,6 +133,45 @@ class EvaluationApiTest {
     }
 
     @Test
+    void rejectsANegativePriceWithItsPosition() {
+        assertThat(mvc.post().uri("/api/evaluations")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"scenarios\": [{\"schuurs\": [{\"boxPrices\": [4, -1]}]}]}"))
+                .hasStatus(HttpStatus.BAD_REQUEST)
+                .bodyJson().extractingPath("$.detail").isEqualTo("Scenario 1, schuur 1: box price must be positive, got -1");
+    }
+
+    @Test
+    void rejectsAnEmptyJsonBody() {
+        assertThat(mvc.post().uri("/api/evaluations").contentType(MediaType.APPLICATION_JSON).content(""))
+                .hasStatus(HttpStatus.BAD_REQUEST)
+                .bodyJson().extractingPath("$.detail").asString().startsWith("Invalid JSON: ");
+    }
+
+    @Test
+    void rejectsMalformedJsonWithItsLine() {
+        assertThat(mvc.post().uri("/api/evaluations").contentType(MediaType.APPLICATION_JSON).content("{\n  \"scenarios\": [\n oops"))
+                .hasStatus(HttpStatus.BAD_REQUEST)
+                .bodyJson().extractingPath("$.line").isEqualTo(3);
+    }
+
+    @Test
+    void rejectsOtherHttpMethods() {
+        assertThat(mvc.get().uri("/api/evaluations")).hasStatus(HttpStatus.METHOD_NOT_ALLOWED);
+        assertThat(mvc.put().uri("/api/evaluations").contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .hasStatus(HttpStatus.METHOD_NOT_ALLOWED);
+    }
+
+    @Test
+    void rejectsAnswerFormatsItCannotProduce() {
+        assertThat(mvc.post().uri("/api/evaluations")
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_XML)
+                .content("{\"scenarios\": [{\"schuurs\": [{\"boxPrices\": [1]}]}]}"))
+                .hasStatus(HttpStatus.NOT_ACCEPTABLE);
+    }
+
+    @Test
     void rejectsTextBodies() {
         assertThat(mvc.post().uri("/api/evaluations")
                 .contentType(MediaType.TEXT_PLAIN)

@@ -6,9 +6,9 @@ import org.junit.jupiter.api.Test;
 
 class InputTypeTest {
 
-    /** The names are part of the REST API. */
+    /** The names are part of the REST API, so renaming one is a breaking change. */
     @Test
-    void namesAreTheStoredAndPublishedValues() {
+    void knowsExactlyJsonBodiesAndUploadedFiles() {
         assertThat(InputType.values()).extracting(InputType::name).containsExactly("JSON", "FILE");
     }
 }

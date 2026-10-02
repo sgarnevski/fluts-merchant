@@ -62,7 +62,7 @@ class EvaluationServiceTest {
     }
 
     @Test
-    void rejectsOtherFileTypes() {
+    void rejectsFilesThatAreNeitherTextNorJson() {
         final EvaluationService service = service(new NoOpScenarioRecorder());
 
         assertThatThrownBy(() -> service.evaluateFile("input.csv", stream(TEXT)))

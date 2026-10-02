@@ -15,13 +15,13 @@ class EvaluationTextConverterTest {
     private final EvaluationTextConverter converter = new EvaluationTextConverter(new TextResultFormatter());
 
     @Test
-    void writesOnlyEvaluationResponsesAsText() {
+    void writesEvaluationResponsesAndNothingElseAsText() {
         assertThat(converter.canWrite(EvaluationResponse.class, MediaType.TEXT_PLAIN)).isTrue();
         assertThat(converter.canWrite(String.class, MediaType.TEXT_PLAIN)).isFalse();
     }
 
     @Test
-    void neverReads() {
+    void refusesToReadARequestBody() {
         assertThat(converter.canRead(EvaluationResponse.class, MediaType.TEXT_PLAIN)).isFalse();
         assertThatThrownBy(() -> converter.read(EvaluationResponse.class, new MockHttpInputMessage(new byte[0])))
                 .isInstanceOf(HttpMessageNotReadableException.class);
